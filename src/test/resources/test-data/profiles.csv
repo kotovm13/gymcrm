@@ -1,0 +1,15 @@
+key,firstName,lastName,dateOfBirth,address,trainingType,username,password
+john_trainee,John,Smith,1995-01-01,Test Address,,John.Smith,password
+john_updated_trainee,John,Updated,1995-01-01,New Address,,John.Updated,password
+nina_trainee,Nina,Sharp,1995-01-01,Test Address,,Nina.Sharp,password
+kate_trainee,Kate,Moss,1995-01-01,Test Address,,Kate.Moss,password
+mark_trainee,Mark,Lee,1995-01-01,Test Address,,Mark.Lee,password
+sam_trainee,Sam,Green,1995-01-01,Test Address,,Sam.Green,password
+broken_trainee,,Broken,1995-01-01,Test Address,,,
+alice_yoga_trainer,Alice,Brown,,,YOGA,Alice.Brown,password
+alice_strength_trainer,Alice,Updated,,,STRENGTH,Alice.Updated,password
+victor_strength_trainer,Victor,Strong,,,STRENGTH,Victor.Strong,password
+greg_cardio_trainer,Greg,Coach,,,CARDIO,Greg.Coach,password
+sara_yoga_trainer,Sara,Hill,,,YOGA,Sara.Hill,password
+bob_strength_trainer,Bob,Power,,,STRENGTH,Bob.Power,password
+sam_cardio_trainer,Sam,Green,,,CARDIO,Sam.Green,password

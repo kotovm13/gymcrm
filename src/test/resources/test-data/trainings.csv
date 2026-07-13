@@ -1,0 +1,3 @@
+key,trainingName,trainingType,trainingDate,durationMinutes,fromDate,toDate,trainerNameFilter,traineeNameFilter
+morning_yoga,Morning Yoga,YOGA,2026-07-13,60,2026-07-01,2026-07-31,Sara,Mark
+unknown_type,Unknown Type,BOXING,2026-07-14,45,2026-07-01,2026-07-31,Victor,Nina
