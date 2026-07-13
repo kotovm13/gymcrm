@@ -1,32 +1,15 @@
 package com.example.gymcrm.credentials;
 
 import com.example.gymcrm.dao.TraineeDao;
-import com.example.gymcrm.dao.TrainerDao;
-import com.example.gymcrm.domain.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
-import java.util.stream.Stream;
 
 @Component
 public class ProfileCredentialsGenerator {
-    private TraineeDao traineeDao;
-    private TrainerDao trainerDao;
-    private PasswordGenerator passwordGenerator;
+    private final TraineeDao traineeDao;
+    private final PasswordGenerator passwordGenerator;
 
-    @Autowired
-    public void setTraineeDao(TraineeDao traineeDao) {
+    public ProfileCredentialsGenerator(TraineeDao traineeDao, PasswordGenerator passwordGenerator) {
         this.traineeDao = traineeDao;
-    }
-
-    @Autowired
-    public void setTrainerDao(TrainerDao trainerDao) {
-        this.trainerDao = trainerDao;
-    }
-
-    @Autowired
-    public void setPasswordGenerator(PasswordGenerator passwordGenerator) {
         this.passwordGenerator = passwordGenerator;
     }
 
@@ -46,12 +29,6 @@ public class ProfileCredentialsGenerator {
     }
 
     private boolean usernameExists(String username) {
-        return Stream.concat(
-                traineeDao.findAll().stream(),
-                trainerDao.findAll().stream()
-        )
-                .map(User::getUsername)
-                .filter(Objects::nonNull)
-                .anyMatch(username::equals);
+        return traineeDao.usernameExists(username);
     }
 }

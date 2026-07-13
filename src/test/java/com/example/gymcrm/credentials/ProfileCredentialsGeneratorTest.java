@@ -1,70 +1,37 @@
 package com.example.gymcrm.credentials;
 
-import com.example.gymcrm.dao.impl.InMemoryTraineeDao;
-import com.example.gymcrm.dao.impl.InMemoryTrainerDao;
-import com.example.gymcrm.domain.Trainee;
-import com.example.gymcrm.domain.Trainer;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.gymcrm.dao.TraineeDao;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.LinkedHashMap;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+@ExtendWith(MockitoExtension.class)
 class ProfileCredentialsGeneratorTest {
-    private InMemoryTraineeDao traineeDao;
-    private InMemoryTrainerDao trainerDao;
-    private ProfileCredentialsGenerator generator;
+    @Mock
+    private TraineeDao traineeDao;
 
-    @BeforeEach
-    void setUp() {
-        traineeDao= new InMemoryTraineeDao();
-        traineeDao.setStorage(new LinkedHashMap<>());
-
-        trainerDao = new InMemoryTrainerDao();
-        trainerDao.setStorage(new LinkedHashMap<>());
-
-        generator = new ProfileCredentialsGenerator();
-        generator.setTraineeDao(traineeDao);
-        generator.setTrainerDao(trainerDao);
-        generator.setPasswordGenerator(new PasswordGenerator());
-    }
+    @Mock
+    private PasswordGenerator passwordGenerator;
 
     @Test
-    void shouldGenerateBaseUsernameWhenNoDuplicateExists() {
-        Credentials credentials = generator.generate("John", "Smith");
+    void shouldGenerateUniqueUsernameWithSuffixAndGeneratedPassword() {
+        ProfileCredentialsGenerator generator = new ProfileCredentialsGenerator(traineeDao, passwordGenerator);
+        when(traineeDao.usernameExists("Sam.Green")).thenReturn(true);
+        when(traineeDao.usernameExists("Sam.Green1")).thenReturn(true);
+        when(traineeDao.usernameExists("Sam.Green2")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("generated-password");
 
-        assertEquals("John.Smith", credentials.username());
-        assertEquals(10, credentials.password().length());
-    }
+        Credentials credentials = generator.generate("Sam", "Green");
 
-    @Test
-    void shouldGenerateUsernameWithSuffixWhenDuplicateExists() {
-        Trainee existing = new Trainee();
-        existing.setFirstName("John");
-        existing.setLastName("Smith");
-        existing.setUsername("John.Smith");
-
-        traineeDao.save(existing);
-
-        Credentials credentials = generator.generate("John", "Smith");
-
-        assertEquals("John.Smith1", credentials.username());
-        assertEquals(10, credentials.password().length());
-    }
-
-    @Test
-    void shouldCheckDuplicatesAcrossTraineesAndTrainers() {
-        Trainee trainee = new Trainee();
-        trainee.setUsername("John.Smith");
-        traineeDao.save(trainee);
-
-        Trainer trainer = new Trainer();
-        trainer.setUsername("John.Smith1");
-        trainerDao.save(trainer);
-
-        Credentials credentials = generator.generate("John", "Smith");
-
-        assertEquals("John.Smith2", credentials.username());
+        assertEquals("Sam.Green2", credentials.username());
+        assertEquals("generated-password", credentials.password());
+        verify(traineeDao).usernameExists("Sam.Green");
+        verify(traineeDao).usernameExists("Sam.Green1");
+        verify(traineeDao).usernameExists("Sam.Green2");
     }
 }

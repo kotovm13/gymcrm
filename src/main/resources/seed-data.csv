@@ -1,7 +1,0 @@
-# type,id,...
-TRAINEE,1,John,Smith,John.Smith,seedpass01,true,1992-04-10,Main Street 10
-TRAINEE,2,Jane,Brown,Jane.Brown,seedpass02,true,1994-08-21,Green Avenue 5
-TRAINER,1,Alice,Williams,Alice.Williams,seedpass03,true,YOGA
-TRAINER,2,Bob,Johnson,Bob.Johnson,seedpass04,true,STRENGTH
-TRAINING,1,1,1,Morning Yoga,YOGA,2026-06-25,60
-TRAINING,2,2,2,Power Basics,STRENGTH,2026-06-26,45

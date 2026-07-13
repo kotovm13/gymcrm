@@ -9,6 +9,8 @@ public interface TraineeDao {
     Trainee save(Trainee trainee);
     Trainee update(Trainee trainee);
     Optional<Trainee> findById(Long id);
+    Optional<Trainee> findByUsername(String username);
     List<Trainee> findAll();
-    void deleteById(Long id);
+    void delete(Trainee trainee);
+    boolean usernameExists(String username);
 }

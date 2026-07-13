@@ -1,24 +1,23 @@
 package com.example.gymcrm.config;
 
 import com.example.gymcrm.facade.GymCrmFacade;
+import com.example.gymcrm.service.TraineeService;
+import com.example.gymcrm.service.TrainerService;
+import com.example.gymcrm.service.TrainingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class SpringContextTest {
+class SpringContextTest {
+
     @Test
-    void shouldStartContextAndLoadSeedData() {
-        try (AnnotationConfigApplicationContext context =
-                     new AnnotationConfigApplicationContext(AppConfig.class)) {
-
-            GymCrmFacade facade = context.getBean(GymCrmFacade.class);
-
-            assertNotNull(facade);
-            assertEquals(2, facade.selectAllTrainees().size());
-            assertEquals(2, facade.selectAllTrainers().size());
-            assertEquals(2, facade.selectAllTrainings().size());
+    void shouldLoadApplicationContext() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class)) {
+            assertNotNull(context.getBean(GymCrmFacade.class));
+            assertNotNull(context.getBean(TraineeService.class));
+            assertNotNull(context.getBean(TrainerService.class));
+            assertNotNull(context.getBean(TrainingService.class));
         }
     }
 }
