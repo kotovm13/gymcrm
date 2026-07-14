@@ -1,4 +1,4 @@
-package com.example.gymcrm.dao;
+package com.example.gymcrm.repository;
 
 import com.example.gymcrm.domain.Training;
 import com.example.gymcrm.dto.TraineeTrainingCriteria;
@@ -7,7 +7,7 @@ import com.example.gymcrm.dto.TrainerTrainingCriteria;
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainingDao {
+public interface TrainingRepository {
     Training save(Training training);
     Optional<Training> findById(Long id);
     List<Training> findAll();

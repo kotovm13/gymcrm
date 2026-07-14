@@ -1,9 +1,9 @@
 package com.example.gymcrm.service;
 
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
-import com.example.gymcrm.dao.TraineeDao;
-import com.example.gymcrm.dao.TrainerDao;
-import com.example.gymcrm.dao.TrainingDao;
+import com.example.gymcrm.repository.TraineeRepository;
+import com.example.gymcrm.repository.TrainerRepository;
+import com.example.gymcrm.repository.TrainingRepository;
 import com.example.gymcrm.domain.Trainee;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.exception.NotFoundException;
@@ -26,13 +26,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TraineeServiceUnitTest {
     @Mock
-    private TraineeDao traineeDao;
+    private TraineeRepository traineeRepository;
 
     @Mock
-    private TrainerDao trainerDao;
+    private TrainerRepository trainerRepository;
 
     @Mock
-    private TrainingDao trainingDao;
+    private TrainingRepository trainingRepository;
 
     @Mock
     private ProfileCredentialsGenerator credentialsGenerator;
@@ -40,35 +40,35 @@ class TraineeServiceUnitTest {
     @Test
     void shouldUpdateTraineeTrainerList() {
         TraineeServiceImpl service = new TraineeServiceImpl(
-                traineeDao,
-                trainerDao,
-                trainingDao,
+                traineeRepository,
+                trainerRepository,
+                trainingRepository,
                 credentialsGenerator
         );
         Trainee trainee = trainee("kate_trainee");
         Trainer trainer = trainer("sara_yoga_trainer");
-        when(traineeDao.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findByUsername("Sara.Hill")).thenReturn(Optional.of(trainer));
-        when(traineeDao.update(trainee)).thenReturn(trainee);
+        when(traineeRepository.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername("Sara.Hill")).thenReturn(Optional.of(trainer));
+        when(traineeRepository.update(trainee)).thenReturn(trainee);
 
         Trainee updated = service.updateTrainers("Kate.Moss", "password", List.of("Sara.Hill"));
 
         assertEquals(1, updated.getTrainers().size());
         assertEquals(trainer, updated.getTrainers().iterator().next());
-        verify(traineeDao).update(trainee);
+        verify(traineeRepository).update(trainee);
     }
 
     @Test
     void shouldRejectMissingTrainerWhenUpdatingTrainerList() {
         TraineeServiceImpl service = new TraineeServiceImpl(
-                traineeDao,
-                trainerDao,
-                trainingDao,
+                traineeRepository,
+                trainerRepository,
+                trainingRepository,
                 credentialsGenerator
         );
         Trainee trainee = trainee("kate_trainee");
-        when(traineeDao.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findByUsername("missing")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername("missing")).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> service.updateTrainers("Kate.Moss", "password", List.of("missing")));

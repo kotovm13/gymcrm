@@ -1,11 +1,11 @@
-package com.example.gymcrm.dao;
+package com.example.gymcrm.repository;
 
 import com.example.gymcrm.domain.Trainer;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainerDao {
+public interface TrainerRepository {
     Trainer save(Trainer trainer);
     Trainer update(Trainer trainer);
     Optional<Trainer> findById(Long id);

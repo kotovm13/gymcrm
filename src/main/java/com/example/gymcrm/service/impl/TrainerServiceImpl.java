@@ -2,52 +2,55 @@ package com.example.gymcrm.service.impl;
 
 import com.example.gymcrm.credentials.Credentials;
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
-import com.example.gymcrm.dao.TrainerDao;
-import com.example.gymcrm.dao.TrainingDao;
-import com.example.gymcrm.dao.TrainingTypeDao;
+import com.example.gymcrm.repository.TrainerRepository;
+import com.example.gymcrm.repository.TrainingRepository;
+import com.example.gymcrm.repository.TrainingTypeRepository;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.Training;
 import com.example.gymcrm.domain.TrainingType;
+import com.example.gymcrm.dto.TrainerProfileRequest;
 import com.example.gymcrm.dto.TrainerTrainingCriteria;
 import com.example.gymcrm.exception.AuthenticationException;
 import com.example.gymcrm.exception.NotFoundException;
 import com.example.gymcrm.service.TrainerService;
-import com.example.gymcrm.service.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Validated
 public class TrainerServiceImpl implements TrainerService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TrainerServiceImpl.class);
 
-    private final TrainerDao trainerDao;
-    private final TrainingDao trainingDao;
-    private final TrainingTypeDao trainingTypeDao;
+    private final TrainerRepository trainerRepository;
+    private final TrainingRepository trainingRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final ProfileCredentialsGenerator credentialsGenerator;
 
-    public TrainerServiceImpl(TrainerDao trainerDao, TrainingDao trainingDao, TrainingTypeDao trainingTypeDao,
+    public TrainerServiceImpl(TrainerRepository trainerRepository, TrainingRepository trainingRepository, TrainingTypeRepository trainingTypeRepository,
                               ProfileCredentialsGenerator credentialsGenerator) {
-        this.trainerDao = trainerDao;
-        this.trainingDao = trainingDao;
-        this.trainingTypeDao = trainingTypeDao;
+        this.trainerRepository = trainerRepository;
+        this.trainingRepository = trainingRepository;
+        this.trainingTypeRepository = trainingTypeRepository;
         this.credentialsGenerator = credentialsGenerator;
     }
 
     @Override
     @Transactional
-    public Trainer create(Trainer trainer) {
-        ValidationUtils.validateTrainerForCreateOrUpdate(trainer);
-        trainer.setSpecialization(resolveTrainingType(trainer.getSpecialization().getName()));
-        Credentials credentials = credentialsGenerator.generate(trainer.getFirstName(), trainer.getLastName());
+    public Trainer create(TrainerProfileRequest request) {
+        Trainer trainer = new Trainer();
+        applyProfile(request, trainer);
+
+        Credentials credentials = credentialsGenerator.generate(request.firstName(), request.lastName());
         trainer.setUsername(credentials.username());
         trainer.setPassword(credentials.password());
 
-        Trainer saved = trainerDao.save(trainer);
+        Trainer saved = trainerRepository.save(trainer);
         LOGGER.info("Created trainer with id={}, username={}", saved.getId(), saved.getUsername());
         return saved;
     }
@@ -55,7 +58,7 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     @Transactional(readOnly = true)
     public boolean authenticate(String username, String password) {
-        return trainerDao.findByUsername(username)
+        return trainerRepository.findByUsername(username)
                 .filter(trainer -> trainer.getPassword().equals(password))
                 .isPresent();
     }
@@ -65,20 +68,16 @@ public class TrainerServiceImpl implements TrainerService {
     public Optional<Trainer> selectByUsername(String username, String password) {
         authenticateOrThrow(username, password);
         LOGGER.debug("Selecting trainer profile by username={}", username);
-        return trainerDao.findByUsername(username);
+        return trainerRepository.findByUsername(username);
     }
 
     @Override
     @Transactional
-    public Trainer update(String username, String password, Trainer trainer) {
+    public Trainer update(String username, String password, TrainerProfileRequest request) {
         Trainer existing = authenticateOrThrow(username, password);
-        ValidationUtils.validateTrainerForCreateOrUpdate(trainer);
+        applyProfile(request, existing);
 
-        existing.setFirstName(trainer.getFirstName());
-        existing.setLastName(trainer.getLastName());
-        existing.setSpecialization(resolveTrainingType(trainer.getSpecialization().getName()));
-
-        Trainer updated = trainerDao.update(existing);
+        Trainer updated = trainerRepository.update(existing);
         LOGGER.info("Updated trainer with username={}", username);
         return updated;
     }
@@ -87,9 +86,9 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional
     public void changePassword(String username, String oldPassword, String newPassword) {
         Trainer trainer = authenticateOrThrow(username, oldPassword);
-        ValidationUtils.requireText(newPassword, "New password is required");
+        requireText(newPassword, "New password is required");
         trainer.setPassword(newPassword);
-        trainerDao.update(trainer);
+        trainerRepository.update(trainer);
         LOGGER.info("Changed trainer password for username={}", username);
     }
 
@@ -97,9 +96,9 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional
     public void setActive(String username, String password, boolean active) {
         Trainer trainer = authenticateOrThrow(username, password);
-        ValidationUtils.requireStateChange(trainer.isActive(), active, "Trainer");
+        requireStateChange(trainer.isActive(), active, "Trainer");
         trainer.setActive(active);
-        trainerDao.update(trainer);
+        trainerRepository.update(trainer);
         LOGGER.info("Set trainer active={} for username={}", active, username);
     }
 
@@ -107,41 +106,31 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional(readOnly = true)
     public List<Training> getTrainings(String username, String password, TrainerTrainingCriteria criteria) {
         authenticateOrThrow(username, password);
-        return trainingDao.findByTrainerCriteria(username, defaultCriteria(criteria));
-    }
-
-    @Override
-    @Transactional
-    public Trainer update(Trainer trainer) {
-        ValidationUtils.validateTrainerForCreateOrUpdate(trainer);
-        trainer.setSpecialization(resolveTrainingType(trainer.getSpecialization().getName()));
-        Trainer updated = trainerDao.update(trainer);
-        LOGGER.info("Updated trainer with id={}", updated.getId());
-        return updated;
+        return trainingRepository.findByTrainerCriteria(username, defaultCriteria(criteria));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<Trainer> select(Long id) {
         LOGGER.debug("Selecting trainer with id={}", id);
-        return trainerDao.findById(id);
+        return trainerRepository.findById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Trainer> selectAll() {
         LOGGER.debug("Selecting all trainer profiles");
-        return trainerDao.findAll();
+        return trainerRepository.findAll();
     }
 
     private Trainer authenticateOrThrow(String username, String password) {
-        return trainerDao.findByUsername(username)
+        return trainerRepository.findByUsername(username)
                 .filter(trainer -> trainer.getPassword().equals(password))
                 .orElseThrow(() -> new AuthenticationException("Invalid trainer credentials"));
     }
 
     private TrainingType resolveTrainingType(String name) {
-        return trainingTypeDao.findByName(name)
+        return trainingTypeRepository.findByName(name)
                 .orElseThrow(() -> new NotFoundException("Training type not found: " + name));
     }
 
@@ -150,5 +139,23 @@ public class TrainerServiceImpl implements TrainerService {
             return new TrainerTrainingCriteria(null, null, null);
         }
         return criteria;
+    }
+
+    private void applyProfile(TrainerProfileRequest request, Trainer trainer) {
+        trainer.setFirstName(request.firstName());
+        trainer.setLastName(request.lastName());
+        trainer.setSpecialization(resolveTrainingType(request.specialization()));
+    }
+
+    private void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private void requireStateChange(boolean currentState, boolean newState, String profileType) {
+        if (currentState == newState) {
+            throw new IllegalStateException(profileType + " active state is already " + newState);
+        }
     }
 }

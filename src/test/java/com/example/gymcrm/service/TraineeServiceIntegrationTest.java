@@ -6,13 +6,13 @@ import com.example.gymcrm.dto.TraineeProfileRequest;
 import com.example.gymcrm.exception.AuthenticationException;
 import com.example.gymcrm.exception.NotFoundException;
 import com.example.gymcrm.facade.GymCrmFacade;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.util.List;
 
 import static com.example.gymcrm.CsvTestData.profile;
-import static com.example.gymcrm.CsvTestData.trainee;
 import static com.example.gymcrm.CsvTestData.traineeRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,25 +67,21 @@ class TraineeServiceIntegrationTest {
                     () -> facade.changeTraineePassword(trainee.getUsername(), trainee.getPassword(), " "));
             assertThrows(NotFoundException.class,
                     () -> facade.updateTraineeTrainers(trainee.getUsername(), trainee.getPassword(), List.of("missing")));
-            assertThrows(IllegalArgumentException.class, () -> facade.createTrainee(traineeRequest("broken_trainee")));
+            assertThrows(ConstraintViolationException.class, () -> facade.createTrainee(traineeRequest("broken_trainee")));
             assertThrows(NotFoundException.class, () -> facade.deleteTrainee(999L));
         }
     }
 
     @Test
-    void shouldExposeLegacySelectionAndUpdateMethods() {
+    void shouldExposeSelectionMethods() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class)) {
             GymCrmFacade facade = context.getBean(GymCrmFacade.class);
 
-            Trainee trainee = facade.createTrainee(trainee("kate_trainee"));
+            Trainee trainee = facade.createTrainee(traineeRequest("kate_trainee"));
 
             assertEquals(1, facade.selectAllTrainees().size());
             assertTrue(facade.selectTrainee(trainee.getId()).isPresent());
             assertFalse(facade.authenticateTrainee(trainee.getUsername(), "bad-password"));
-
-            trainee.setLastName("Legacy");
-
-            assertEquals("Legacy", facade.updateTrainee(trainee).getLastName());
         }
     }
 }

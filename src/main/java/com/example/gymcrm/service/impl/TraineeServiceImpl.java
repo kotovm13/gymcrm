@@ -2,52 +2,56 @@ package com.example.gymcrm.service.impl;
 
 import com.example.gymcrm.credentials.Credentials;
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
-import com.example.gymcrm.dao.TraineeDao;
-import com.example.gymcrm.dao.TrainerDao;
-import com.example.gymcrm.dao.TrainingDao;
+import com.example.gymcrm.repository.TraineeRepository;
+import com.example.gymcrm.repository.TrainerRepository;
+import com.example.gymcrm.repository.TrainingRepository;
 import com.example.gymcrm.domain.Trainee;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.Training;
+import com.example.gymcrm.dto.TraineeProfileRequest;
 import com.example.gymcrm.dto.TraineeTrainingCriteria;
 import com.example.gymcrm.exception.AuthenticationException;
 import com.example.gymcrm.exception.NotFoundException;
 import com.example.gymcrm.service.TraineeService;
-import com.example.gymcrm.service.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Validated
 public class TraineeServiceImpl implements TraineeService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TraineeServiceImpl.class);
 
-    private final TraineeDao traineeDao;
-    private final TrainerDao trainerDao;
-    private final TrainingDao trainingDao;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TrainingRepository trainingRepository;
     private final ProfileCredentialsGenerator credentialsGenerator;
 
-    public TraineeServiceImpl(TraineeDao traineeDao, TrainerDao trainerDao, TrainingDao trainingDao,
+    public TraineeServiceImpl(TraineeRepository traineeRepository, TrainerRepository trainerRepository, TrainingRepository trainingRepository,
                               ProfileCredentialsGenerator credentialsGenerator) {
-        this.traineeDao = traineeDao;
-        this.trainerDao = trainerDao;
-        this.trainingDao = trainingDao;
+        this.traineeRepository = traineeRepository;
+        this.trainerRepository = trainerRepository;
+        this.trainingRepository = trainingRepository;
         this.credentialsGenerator = credentialsGenerator;
     }
 
     @Override
     @Transactional
-    public Trainee create(Trainee trainee) {
-        ValidationUtils.validateTraineeForCreateOrUpdate(trainee);
-        Credentials credentials = credentialsGenerator.generate(trainee.getFirstName(), trainee.getLastName());
+    public Trainee create(TraineeProfileRequest request) {
+        Trainee trainee = new Trainee();
+        applyProfile(request, trainee);
+
+        Credentials credentials = credentialsGenerator.generate(request.firstName(), request.lastName());
         trainee.setUsername(credentials.username());
         trainee.setPassword(credentials.password());
 
-        Trainee saved = traineeDao.save(trainee);
+        Trainee saved = traineeRepository.save(trainee);
         LOGGER.info("Created trainee with id={}, username={}", saved.getId(), saved.getUsername());
         return saved;
     }
@@ -55,7 +59,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     @Transactional(readOnly = true)
     public boolean authenticate(String username, String password) {
-        return traineeDao.findByUsername(username)
+        return traineeRepository.findByUsername(username)
                 .filter(trainee -> trainee.getPassword().equals(password))
                 .isPresent();
     }
@@ -65,21 +69,16 @@ public class TraineeServiceImpl implements TraineeService {
     public Optional<Trainee> selectByUsername(String username, String password) {
         authenticateOrThrow(username, password);
         LOGGER.debug("Selecting trainee profile by username={}", username);
-        return traineeDao.findByUsername(username);
+        return traineeRepository.findByUsername(username);
     }
 
     @Override
     @Transactional
-    public Trainee update(String username, String password, Trainee trainee) {
+    public Trainee update(String username, String password, TraineeProfileRequest request) {
         Trainee existing = authenticateOrThrow(username, password);
-        ValidationUtils.validateTraineeForCreateOrUpdate(trainee);
+        applyProfile(request, existing);
 
-        existing.setFirstName(trainee.getFirstName());
-        existing.setLastName(trainee.getLastName());
-        existing.setDateOfBirth(trainee.getDateOfBirth());
-        existing.setAddress(trainee.getAddress());
-
-        Trainee updated = traineeDao.update(existing);
+        Trainee updated = traineeRepository.update(existing);
         LOGGER.info("Updated trainee with username={}", username);
         return updated;
     }
@@ -88,9 +87,9 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional
     public void changePassword(String username, String oldPassword, String newPassword) {
         Trainee trainee = authenticateOrThrow(username, oldPassword);
-        ValidationUtils.requireText(newPassword, "New password is required");
+        requireText(newPassword, "New password is required");
         trainee.setPassword(newPassword);
-        traineeDao.update(trainee);
+        traineeRepository.update(trainee);
         LOGGER.info("Changed trainee password for username={}", username);
     }
 
@@ -98,9 +97,9 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional
     public void setActive(String username, String password, boolean active) {
         Trainee trainee = authenticateOrThrow(username, password);
-        ValidationUtils.requireStateChange(trainee.isActive(), active, "Trainee");
+        requireStateChange(trainee.isActive(), active, "Trainee");
         trainee.setActive(active);
-        traineeDao.update(trainee);
+        traineeRepository.update(trainee);
         LOGGER.info("Set trainee active={} for username={}", active, username);
     }
 
@@ -108,7 +107,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional
     public void deleteByUsername(String username, String password) {
         Trainee trainee = authenticateOrThrow(username, password);
-        traineeDao.delete(trainee);
+        traineeRepository.delete(trainee);
         LOGGER.info("Deleted trainee profile with username={}", username);
     }
 
@@ -116,14 +115,14 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional(readOnly = true)
     public List<Training> getTrainings(String username, String password, TraineeTrainingCriteria criteria) {
         authenticateOrThrow(username, password);
-        return trainingDao.findByTraineeCriteria(username, defaultCriteria(criteria));
+        return trainingRepository.findByTraineeCriteria(username, defaultCriteria(criteria));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Trainer> getNotAssignedTrainers(String username, String password) {
         authenticateOrThrow(username, password);
-        return trainerDao.findNotAssignedToTrainee(username);
+        return trainerRepository.findNotAssignedToTrainee(username);
     }
 
     @Override
@@ -132,29 +131,20 @@ public class TraineeServiceImpl implements TraineeService {
         Trainee trainee = authenticateOrThrow(username, password);
         HashSet<Trainer> trainers = new HashSet<>();
         for (String trainerUsername : trainerUsernames) {
-            trainers.add(trainerDao.findByUsername(trainerUsername)
+            trainers.add(trainerRepository.findByUsername(trainerUsername)
                     .orElseThrow(() -> new NotFoundException("Trainer not found: " + trainerUsername)));
         }
         trainee.setTrainers(trainers);
         LOGGER.info("Updated trainer list for trainee username={}", username);
-        return traineeDao.update(trainee);
-    }
-
-    @Override
-    @Transactional
-    public Trainee update(Trainee trainee) {
-        ValidationUtils.validateTraineeForCreateOrUpdate(trainee);
-        Trainee updated = traineeDao.update(trainee);
-        LOGGER.info("Updated trainee with id={}", updated.getId());
-        return updated;
+        return traineeRepository.update(trainee);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        Trainee trainee = traineeDao.findById(id)
+        Trainee trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Trainee not found by id: " + id));
-        traineeDao.delete(trainee);
+        traineeRepository.delete(trainee);
         LOGGER.info("Deleted trainee with id={}", id);
     }
 
@@ -162,18 +152,18 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional(readOnly = true)
     public Optional<Trainee> select(Long id) {
         LOGGER.debug("Selecting trainee profile with id={}", id);
-        return traineeDao.findById(id);
+        return traineeRepository.findById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Trainee> selectAll() {
         LOGGER.debug("Selecting all trainee profiles");
-        return traineeDao.findAll();
+        return traineeRepository.findAll();
     }
 
     private Trainee authenticateOrThrow(String username, String password) {
-        return traineeDao.findByUsername(username)
+        return traineeRepository.findByUsername(username)
                 .filter(trainee -> trainee.getPassword().equals(password))
                 .orElseThrow(() -> new AuthenticationException("Invalid trainee credentials"));
     }
@@ -183,5 +173,24 @@ public class TraineeServiceImpl implements TraineeService {
             return new TraineeTrainingCriteria(null, null, null, null);
         }
         return criteria;
+    }
+
+    private void applyProfile(TraineeProfileRequest request, Trainee trainee) {
+        trainee.setFirstName(request.firstName());
+        trainee.setLastName(request.lastName());
+        trainee.setDateOfBirth(request.dateOfBirth());
+        trainee.setAddress(request.address());
+    }
+
+    private void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private void requireStateChange(boolean currentState, boolean newState, String profileType) {
+        if (currentState == newState) {
+            throw new IllegalStateException(profileType + " active state is already " + newState);
+        }
     }
 }

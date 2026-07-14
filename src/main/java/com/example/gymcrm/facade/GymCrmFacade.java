@@ -3,7 +3,6 @@ package com.example.gymcrm.facade;
 import com.example.gymcrm.domain.Trainee;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.Training;
-import com.example.gymcrm.domain.TrainingType;
 import com.example.gymcrm.dto.AddTrainingRequest;
 import com.example.gymcrm.dto.TraineeProfileRequest;
 import com.example.gymcrm.dto.TraineeTrainingCriteria;
@@ -14,7 +13,6 @@ import com.example.gymcrm.service.TrainerService;
 import com.example.gymcrm.service.TrainingService;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,24 +28,12 @@ public class GymCrmFacade {
         this.trainingService = trainingService;
     }
 
-    public Trainee createTrainee(Trainee trainee) {
-        return traineeService.create(trainee);
-    }
-
     public Trainee createTrainee(TraineeProfileRequest request) {
-        return traineeService.create(toTrainee(request));
-    }
-
-    public Trainee updateTrainee(Trainee trainee) {
-        return traineeService.update(trainee);
-    }
-
-    public Trainee updateTrainee(String username, String password, Trainee trainee) {
-        return traineeService.update(username, password, trainee);
+        return traineeService.create(request);
     }
 
     public Trainee updateTrainee(String username, String password, TraineeProfileRequest request) {
-        return traineeService.update(username, password, toTrainee(request));
+        return traineeService.update(username, password, request);
     }
 
     public void deleteTrainee(Long id) {
@@ -94,24 +80,12 @@ public class GymCrmFacade {
         return traineeService.updateTrainers(username, password, trainerUsernames);
     }
 
-    public Trainer createTrainer(Trainer trainer) {
-        return trainerService.create(trainer);
-    }
-
     public Trainer createTrainer(TrainerProfileRequest request) {
-        return trainerService.create(toTrainer(request));
-    }
-
-    public Trainer updateTrainer(Trainer trainer) {
-        return trainerService.update(trainer);
-    }
-
-    public Trainer updateTrainer(String username, String password, Trainer trainer) {
-        return trainerService.update(username, password, trainer);
+        return trainerService.create(request);
     }
 
     public Trainer updateTrainer(String username, String password, TrainerProfileRequest request) {
-        return trainerService.update(username, password, toTrainer(request));
+        return trainerService.update(username, password, request);
     }
 
     public Optional<Trainer> selectTrainer(Long id) {
@@ -142,33 +116,8 @@ public class GymCrmFacade {
         return trainerService.getTrainings(username, password, criteria);
     }
 
-    public Training createTraining(Training training) {
-        return trainingService.create(training);
-    }
-
-    public Training addTraining(String trainerUsername, String trainerPassword, String traineeUsername,
-                                String trainingName, String trainingType, LocalDate trainingDate, int durationMinutes) {
-        return trainingService.addTraining(
-                trainerUsername,
-                trainerPassword,
-                traineeUsername,
-                trainingName,
-                trainingType,
-                trainingDate,
-                durationMinutes
-        );
-    }
-
     public Training addTraining(AddTrainingRequest request) {
-        return trainingService.addTraining(
-                request.trainerUsername(),
-                request.trainerPassword(),
-                request.traineeUsername(),
-                request.trainingName(),
-                request.trainingType(),
-                request.trainingDate(),
-                request.durationMinutes()
-        );
+        return trainingService.addTraining(request);
     }
 
     public Optional<Training> selectTraining(Long id) {
@@ -177,22 +126,5 @@ public class GymCrmFacade {
 
     public List<Training> selectAllTrainings() {
         return trainingService.selectAll();
-    }
-
-    private Trainee toTrainee(TraineeProfileRequest request) {
-        Trainee trainee = new Trainee();
-        trainee.setFirstName(request.firstName());
-        trainee.setLastName(request.lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        return trainee;
-    }
-
-    private Trainer toTrainer(TrainerProfileRequest request) {
-        Trainer trainer = new Trainer();
-        trainer.setFirstName(request.firstName());
-        trainer.setLastName(request.lastName());
-        trainer.setSpecialization(new TrainingType(null, request.specialization()));
-        return trainer;
     }
 }

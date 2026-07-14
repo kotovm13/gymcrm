@@ -1,15 +1,15 @@
 package com.example.gymcrm.credentials;
 
-import com.example.gymcrm.dao.TraineeDao;
+import com.example.gymcrm.repository.TraineeRepository;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProfileCredentialsGenerator {
-    private final TraineeDao traineeDao;
+    private final TraineeRepository traineeRepository;
     private final PasswordGenerator passwordGenerator;
 
-    public ProfileCredentialsGenerator(TraineeDao traineeDao, PasswordGenerator passwordGenerator) {
-        this.traineeDao = traineeDao;
+    public ProfileCredentialsGenerator(TraineeRepository traineeRepository, PasswordGenerator passwordGenerator) {
+        this.traineeRepository = traineeRepository;
         this.passwordGenerator = passwordGenerator;
     }
 
@@ -29,6 +29,6 @@ public class ProfileCredentialsGenerator {
     }
 
     private boolean usernameExists(String username) {
-        return traineeDao.usernameExists(username);
+        return traineeRepository.usernameExists(username);
     }
 }

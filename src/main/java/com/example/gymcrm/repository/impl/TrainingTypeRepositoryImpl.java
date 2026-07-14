@@ -1,6 +1,6 @@
-package com.example.gymcrm.dao.impl;
+package com.example.gymcrm.repository.impl;
 
-import com.example.gymcrm.dao.TrainingTypeDao;
+import com.example.gymcrm.repository.TrainingTypeRepository;
 import com.example.gymcrm.domain.TrainingType;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public class HibernateTrainingTypeDao implements TrainingTypeDao {
+public class TrainingTypeRepositoryImpl implements TrainingTypeRepository {
     private final SessionFactory sessionFactory;
 
-    public HibernateTrainingTypeDao(SessionFactory sessionFactory) {
+    public TrainingTypeRepositoryImpl(SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
     }
 

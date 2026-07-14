@@ -6,10 +6,10 @@ import com.example.gymcrm.domain.TrainingType;
 import com.example.gymcrm.dto.TrainerProfileRequest;
 import com.example.gymcrm.exception.AuthenticationException;
 import com.example.gymcrm.facade.GymCrmFacade;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import static com.example.gymcrm.CsvTestData.trainer;
 import static com.example.gymcrm.CsvTestData.trainerRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,25 +51,21 @@ class TrainerServiceIntegrationTest {
             facade.setTrainerActive(trainer.getUsername(), trainer.getPassword(), false);
             facade.setTrainerActive(trainer.getUsername(), trainer.getPassword(), true);
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(ConstraintViolationException.class,
                     () -> facade.createTrainer(new TrainerProfileRequest(null, "Broken", TrainingType.YOGA)));
         }
     }
 
     @Test
-    void shouldExposeLegacySelectionAndUpdateMethods() {
+    void shouldExposeSelectionMethods() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class)) {
             GymCrmFacade facade = context.getBean(GymCrmFacade.class);
 
-            Trainer trainer = facade.createTrainer(trainer("greg_cardio_trainer"));
+            Trainer trainer = facade.createTrainer(trainerRequest("greg_cardio_trainer"));
 
             assertEquals(1, facade.selectAllTrainers().size());
             assertTrue(facade.selectTrainer(trainer.getId()).isPresent());
             assertFalse(facade.authenticateTrainer(trainer.getUsername(), "bad-password"));
-
-            trainer.setLastName("Legacy");
-
-            assertEquals("Legacy", facade.updateTrainer(trainer).getLastName());
         }
     }
 }
