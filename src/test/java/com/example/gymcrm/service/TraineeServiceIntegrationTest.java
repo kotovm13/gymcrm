@@ -17,6 +17,7 @@ import static com.example.gymcrm.CsvTestData.traineeRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,6 +33,7 @@ class TraineeServiceIntegrationTest {
 
             assertNotNull(trainee.getUsername());
             assertNotNull(trainee.getPassword());
+            assertNotEquals(trainee.getPassword(), facade.selectTrainee(trainee.getId()).orElseThrow().getPassword());
             assertTrue(facade.authenticateTrainee(trainee.getUsername(), trainee.getPassword()));
             assertTrue(facade.selectTrainee(trainee.getUsername(), trainee.getPassword()).isPresent());
 

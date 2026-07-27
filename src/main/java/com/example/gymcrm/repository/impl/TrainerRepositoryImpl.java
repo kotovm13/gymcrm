@@ -35,7 +35,12 @@ public class TrainerRepositoryImpl implements TrainerRepository {
     @Override
     public Optional<Trainer> findByUsername(String username) {
         return sessionFactory.getCurrentSession()
-                .createQuery("from Trainer t where t.username = :username", Trainer.class)
+                .createQuery("""
+                        select distinct t from Trainer t
+                        left join fetch t.specialization
+                        left join fetch t.trainees
+                        where t.username = :username
+                        """, Trainer.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
     }
@@ -52,11 +57,13 @@ public class TrainerRepositoryImpl implements TrainerRepository {
         return sessionFactory.getCurrentSession()
                 .createQuery("""
                         select tr from Trainer tr
+                        join fetch tr.specialization
                         where tr.id not in (
                             select assigned.id from Trainee te
                             join te.trainers assigned
                             where te.username = :username
                         )
+                        and tr.active = true
                         """, Trainer.class)
                 .setParameter("username", traineeUsername)
                 .getResultList();

@@ -1,5 +1,6 @@
 package com.example.gymcrm.facade;
 
+import com.example.gymcrm.credentials.ProfileRegistration;
 import com.example.gymcrm.domain.Trainee;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.Training;
@@ -29,6 +30,15 @@ public class GymCrmFacade {
     }
 
     public Trainee createTrainee(TraineeProfileRequest request) {
+        ProfileRegistration<Trainee> registration = registerTrainee(request);
+        Trainee profile = registration.profile();
+        return new Trainee(
+                profile.getId(), profile.getFirstName(), profile.getLastName(), profile.getUsername(),
+                registration.password(), profile.isActive(), profile.getDateOfBirth(), profile.getAddress()
+        );
+    }
+
+    public ProfileRegistration<Trainee> registerTrainee(TraineeProfileRequest request) {
         return traineeService.create(request);
     }
 
@@ -81,6 +91,15 @@ public class GymCrmFacade {
     }
 
     public Trainer createTrainer(TrainerProfileRequest request) {
+        ProfileRegistration<Trainer> registration = registerTrainer(request);
+        Trainer profile = registration.profile();
+        return new Trainer(
+                profile.getId(), profile.getFirstName(), profile.getLastName(), profile.getUsername(),
+                registration.password(), profile.isActive(), profile.getSpecialization()
+        );
+    }
+
+    public ProfileRegistration<Trainer> registerTrainer(TrainerProfileRequest request) {
         return trainerService.create(request);
     }
 

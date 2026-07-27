@@ -2,6 +2,8 @@ package com.example.gymcrm.service;
 
 import com.example.gymcrm.credentials.Credentials;
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
+import com.example.gymcrm.credentials.PasswordHasher;
+import com.example.gymcrm.credentials.ProfileRegistration;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.TrainingType;
 import com.example.gymcrm.dto.TrainerProfileRequest;
@@ -40,6 +42,9 @@ class TrainerServiceUnitTest {
     @Mock
     private ProfileCredentialsGenerator credentialsGenerator;
 
+    @Mock
+    private PasswordHasher passwordHasher;
+
     private TrainerServiceImpl service;
 
     @BeforeEach
@@ -48,7 +53,8 @@ class TrainerServiceUnitTest {
                 trainerRepository,
                 trainingRepository,
                 trainingTypeRepository,
-                credentialsGenerator
+                credentialsGenerator,
+                passwordHasher
         );
     }
 
@@ -64,12 +70,15 @@ class TrainerServiceUnitTest {
         when(trainingTypeRepository.findByName(TrainingType.YOGA)).thenReturn(Optional.of(yoga));
         when(credentialsGenerator.generate(profile.firstName(), profile.lastName()))
                 .thenReturn(new Credentials(profile.username(), profile.password()));
+        when(passwordHasher.hash(profile.password())).thenReturn("password-hash");
         when(trainerRepository.save(any(Trainer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Trainer saved = service.create(request);
+        ProfileRegistration<Trainer> registration = service.create(request);
+        Trainer saved = registration.profile();
 
         assertEquals("Alice.Brown", saved.getUsername());
-        assertEquals("password", saved.getPassword());
+        assertEquals("password", registration.password());
+        assertEquals("password-hash", saved.getPassword());
         assertEquals(yoga, saved.getSpecialization());
 
         ArgumentCaptor<Trainer> trainerCaptor = ArgumentCaptor.forClass(Trainer.class);

@@ -1,6 +1,7 @@
 package com.example.gymcrm.service;
 
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
+import com.example.gymcrm.credentials.PasswordHasher;
 import com.example.gymcrm.repository.TraineeRepository;
 import com.example.gymcrm.repository.TrainerRepository;
 import com.example.gymcrm.repository.TrainingRepository;
@@ -37,17 +38,22 @@ class TraineeServiceUnitTest {
     @Mock
     private ProfileCredentialsGenerator credentialsGenerator;
 
+    @Mock
+    private PasswordHasher passwordHasher;
+
     @Test
     void shouldUpdateTraineeTrainerList() {
         TraineeServiceImpl service = new TraineeServiceImpl(
                 traineeRepository,
                 trainerRepository,
                 trainingRepository,
-                credentialsGenerator
+                credentialsGenerator,
+                passwordHasher
         );
         Trainee trainee = trainee("kate_trainee");
         Trainer trainer = trainer("sara_yoga_trainer");
         when(traineeRepository.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
+        when(passwordHasher.matches("password", trainee.getPassword())).thenReturn(true);
         when(trainerRepository.findByUsername("Sara.Hill")).thenReturn(Optional.of(trainer));
         when(traineeRepository.update(trainee)).thenReturn(trainee);
 
@@ -64,10 +70,12 @@ class TraineeServiceUnitTest {
                 traineeRepository,
                 trainerRepository,
                 trainingRepository,
-                credentialsGenerator
+                credentialsGenerator,
+                passwordHasher
         );
         Trainee trainee = trainee("kate_trainee");
         when(traineeRepository.findByUsername("Kate.Moss")).thenReturn(Optional.of(trainee));
+        when(passwordHasher.matches("password", trainee.getPassword())).thenReturn(true);
         when(trainerRepository.findByUsername("missing")).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,

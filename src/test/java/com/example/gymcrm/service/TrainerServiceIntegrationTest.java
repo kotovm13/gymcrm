@@ -13,6 +13,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import static com.example.gymcrm.CsvTestData.trainerRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,6 +26,7 @@ class TrainerServiceIntegrationTest {
 
             Trainer trainer = facade.createTrainer(trainerRequest("alice_yoga_trainer"));
 
+            assertNotEquals(trainer.getPassword(), facade.selectTrainer(trainer.getId()).orElseThrow().getPassword());
             assertTrue(facade.authenticateTrainer(trainer.getUsername(), trainer.getPassword()));
             assertTrue(facade.selectTrainer(trainer.getUsername(), trainer.getPassword()).isPresent());
 

@@ -2,6 +2,8 @@ package com.example.gymcrm.service.impl;
 
 import com.example.gymcrm.credentials.Credentials;
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
+import com.example.gymcrm.credentials.PasswordHasher;
+import com.example.gymcrm.credentials.ProfileRegistration;
 import com.example.gymcrm.repository.TraineeRepository;
 import com.example.gymcrm.repository.TrainerRepository;
 import com.example.gymcrm.repository.TrainingRepository;
@@ -32,35 +34,37 @@ public class TraineeServiceImpl implements TraineeService {
     private final TrainerRepository trainerRepository;
     private final TrainingRepository trainingRepository;
     private final ProfileCredentialsGenerator credentialsGenerator;
+    private final PasswordHasher passwordHasher;
 
     public TraineeServiceImpl(TraineeRepository traineeRepository, TrainerRepository trainerRepository, TrainingRepository trainingRepository,
-                              ProfileCredentialsGenerator credentialsGenerator) {
+                              ProfileCredentialsGenerator credentialsGenerator, PasswordHasher passwordHasher) {
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.trainingRepository = trainingRepository;
         this.credentialsGenerator = credentialsGenerator;
+        this.passwordHasher = passwordHasher;
     }
 
     @Override
     @Transactional
-    public Trainee create(TraineeProfileRequest request) {
+    public ProfileRegistration<Trainee> create(TraineeProfileRequest request) {
         Trainee trainee = new Trainee();
         applyProfile(request, trainee);
 
         Credentials credentials = credentialsGenerator.generate(request.firstName(), request.lastName());
         trainee.setUsername(credentials.username());
-        trainee.setPassword(credentials.password());
+        trainee.setPassword(passwordHasher.hash(credentials.password()));
 
         Trainee saved = traineeRepository.save(trainee);
         LOGGER.info("Created trainee with id={}, username={}", saved.getId(), saved.getUsername());
-        return saved;
+        return new ProfileRegistration<>(saved, credentials.password());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean authenticate(String username, String password) {
         return traineeRepository.findByUsername(username)
-                .filter(trainee -> trainee.getPassword().equals(password))
+                .filter(trainee -> passwordHasher.matches(password, trainee.getPassword()))
                 .isPresent();
     }
 
@@ -85,10 +89,21 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
+    public Trainee updateProfile(String username, String password, TraineeProfileRequest request, boolean active) {
+        Trainee existing = authenticateOrThrow(username, password);
+        applyProfile(request, existing);
+        existing.setActive(active);
+        Trainee updated = traineeRepository.update(existing);
+        LOGGER.info("Updated trainee profile with username={}, active={}", username, active);
+        return updated;
+    }
+
+    @Override
+    @Transactional
     public void changePassword(String username, String oldPassword, String newPassword) {
         Trainee trainee = authenticateOrThrow(username, oldPassword);
         requireText(newPassword, "New password is required");
-        trainee.setPassword(newPassword);
+        trainee.setPassword(passwordHasher.hash(newPassword));
         traineeRepository.update(trainee);
         LOGGER.info("Changed trainee password for username={}", username);
     }
@@ -164,7 +179,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     private Trainee authenticateOrThrow(String username, String password) {
         return traineeRepository.findByUsername(username)
-                .filter(trainee -> trainee.getPassword().equals(password))
+                .filter(trainee -> passwordHasher.matches(password, trainee.getPassword()))
                 .orElseThrow(() -> new AuthenticationException("Invalid trainee credentials"));
     }
 

@@ -1,5 +1,6 @@
 package com.example.gymcrm.service.impl;
 
+import com.example.gymcrm.credentials.PasswordHasher;
 import com.example.gymcrm.repository.TraineeRepository;
 import com.example.gymcrm.repository.TrainerRepository;
 import com.example.gymcrm.repository.TrainingRepository;
@@ -30,20 +31,22 @@ public class TrainingServiceImpl implements TrainingService {
     private final TrainerRepository trainerRepository;
     private final TraineeRepository traineeRepository;
     private final TrainingTypeRepository trainingTypeRepository;
+    private final PasswordHasher passwordHasher;
 
     public TrainingServiceImpl(TrainingRepository trainingRepository, TrainerRepository trainerRepository, TraineeRepository traineeRepository,
-                               TrainingTypeRepository trainingTypeRepository) {
+                               TrainingTypeRepository trainingTypeRepository, PasswordHasher passwordHasher) {
         this.trainingRepository = trainingRepository;
         this.trainerRepository = trainerRepository;
         this.traineeRepository = traineeRepository;
         this.trainingTypeRepository = trainingTypeRepository;
+        this.passwordHasher = passwordHasher;
     }
 
     @Override
     @Transactional
     public Training addTraining(AddTrainingRequest request) {
         Trainer trainer = trainerRepository.findByUsername(request.trainerUsername())
-                .filter(found -> found.getPassword().equals(request.trainerPassword()))
+                .filter(found -> passwordHasher.matches(request.trainerPassword(), found.getPassword()))
                 .orElseThrow(() -> new AuthenticationException("Invalid trainer credentials"));
         Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .orElseThrow(() -> new NotFoundException("Trainee not found: " + request.traineeUsername()));

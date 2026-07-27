@@ -2,6 +2,8 @@ package com.example.gymcrm.service.impl;
 
 import com.example.gymcrm.credentials.Credentials;
 import com.example.gymcrm.credentials.ProfileCredentialsGenerator;
+import com.example.gymcrm.credentials.PasswordHasher;
+import com.example.gymcrm.credentials.ProfileRegistration;
 import com.example.gymcrm.repository.TrainerRepository;
 import com.example.gymcrm.repository.TrainingRepository;
 import com.example.gymcrm.repository.TrainingTypeRepository;
@@ -31,35 +33,37 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainingRepository trainingRepository;
     private final TrainingTypeRepository trainingTypeRepository;
     private final ProfileCredentialsGenerator credentialsGenerator;
+    private final PasswordHasher passwordHasher;
 
     public TrainerServiceImpl(TrainerRepository trainerRepository, TrainingRepository trainingRepository, TrainingTypeRepository trainingTypeRepository,
-                              ProfileCredentialsGenerator credentialsGenerator) {
+                              ProfileCredentialsGenerator credentialsGenerator, PasswordHasher passwordHasher) {
         this.trainerRepository = trainerRepository;
         this.trainingRepository = trainingRepository;
         this.trainingTypeRepository = trainingTypeRepository;
         this.credentialsGenerator = credentialsGenerator;
+        this.passwordHasher = passwordHasher;
     }
 
     @Override
     @Transactional
-    public Trainer create(TrainerProfileRequest request) {
+    public ProfileRegistration<Trainer> create(TrainerProfileRequest request) {
         Trainer trainer = new Trainer();
         applyProfile(request, trainer);
 
         Credentials credentials = credentialsGenerator.generate(request.firstName(), request.lastName());
         trainer.setUsername(credentials.username());
-        trainer.setPassword(credentials.password());
+        trainer.setPassword(passwordHasher.hash(credentials.password()));
 
         Trainer saved = trainerRepository.save(trainer);
         LOGGER.info("Created trainer with id={}, username={}", saved.getId(), saved.getUsername());
-        return saved;
+        return new ProfileRegistration<>(saved, credentials.password());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean authenticate(String username, String password) {
         return trainerRepository.findByUsername(username)
-                .filter(trainer -> trainer.getPassword().equals(password))
+                .filter(trainer -> passwordHasher.matches(password, trainer.getPassword()))
                 .isPresent();
     }
 
@@ -84,10 +88,21 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
+    public Trainer updateProfile(String username, String password, TrainerProfileRequest request, boolean active) {
+        Trainer existing = authenticateOrThrow(username, password);
+        applyProfile(request, existing);
+        existing.setActive(active);
+        Trainer updated = trainerRepository.update(existing);
+        LOGGER.info("Updated trainer profile with username={}, active={}", username, active);
+        return updated;
+    }
+
+    @Override
+    @Transactional
     public void changePassword(String username, String oldPassword, String newPassword) {
         Trainer trainer = authenticateOrThrow(username, oldPassword);
         requireText(newPassword, "New password is required");
-        trainer.setPassword(newPassword);
+        trainer.setPassword(passwordHasher.hash(newPassword));
         trainerRepository.update(trainer);
         LOGGER.info("Changed trainer password for username={}", username);
     }
@@ -125,7 +140,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     private Trainer authenticateOrThrow(String username, String password) {
         return trainerRepository.findByUsername(username)
-                .filter(trainer -> trainer.getPassword().equals(password))
+                .filter(trainer -> passwordHasher.matches(password, trainer.getPassword()))
                 .orElseThrow(() -> new AuthenticationException("Invalid trainer credentials"));
     }
 

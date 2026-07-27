@@ -35,7 +35,12 @@ public class TraineeRepositoryImpl implements TraineeRepository {
     @Override
     public Optional<Trainee> findByUsername(String username) {
         return sessionFactory.getCurrentSession()
-                .createQuery("from Trainee t where t.username = :username", Trainee.class)
+                .createQuery("""
+                        select distinct t from Trainee t
+                        left join fetch t.trainers trainer
+                        left join fetch trainer.specialization
+                        where t.username = :username
+                        """, Trainee.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
     }

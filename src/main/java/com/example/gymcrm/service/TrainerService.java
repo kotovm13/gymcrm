@@ -1,5 +1,6 @@
 package com.example.gymcrm.service;
 
+import com.example.gymcrm.credentials.ProfileRegistration;
 import com.example.gymcrm.domain.Trainer;
 import com.example.gymcrm.domain.Training;
 import com.example.gymcrm.dto.TrainerProfileRequest;
@@ -10,7 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TrainerService {
-    Trainer create(@Valid TrainerProfileRequest request);
+    ProfileRegistration<Trainer> create(@Valid TrainerProfileRequest request);
+    Trainer updateProfile(String username, String password, @Valid TrainerProfileRequest request, boolean active);
     boolean authenticate(String username, String password);
     Optional<Trainer> selectByUsername(String username, String password);
     Trainer update(String username, String password, @Valid TrainerProfileRequest request);

@@ -5,6 +5,7 @@ import com.example.gymcrm.domain.TrainingType;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -21,5 +22,12 @@ public class TrainingTypeRepositoryImpl implements TrainingTypeRepository {
                 .createQuery("from TrainingType t where t.name = :name", TrainingType.class)
                 .setParameter("name", name)
                 .uniqueResultOptional();
+    }
+
+    @Override
+    public List<TrainingType> findAll() {
+        return sessionFactory.getCurrentSession()
+                .createQuery("from TrainingType t order by t.id", TrainingType.class)
+                .getResultList();
     }
 }
