@@ -2,6 +2,10 @@
 target/
 *.log
 
+# Local environment secrets
+.env
+.env.*
+
 # Maven Wrapper
 !.mvn/wrapper/maven-wrapper.jar
 
